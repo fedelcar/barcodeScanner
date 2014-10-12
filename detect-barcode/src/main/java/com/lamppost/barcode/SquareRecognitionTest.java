@@ -1,15 +1,8 @@
 package com.lamppost.barcode;
 
-import org.bytedeco.javacpp.opencv_core;
-import org.bytedeco.javacpp.opencv_core.*;
-import org.bytedeco.javacpp.helper.opencv_core.*;
-
-import static org.bytedeco.javacpp.opencv_highgui.cvLoadImage;
-import static org.bytedeco.javacpp.opencv_imgproc.*;
-
 public class SquareRecognitionTest
 {
-    private String imageDir = "3";
+   /* private String imageDir = "3";
     private int thresh = 50, N = 11;
 
     // Returns sequence of squares detected on the image.
@@ -102,5 +95,5 @@ public class SquareRecognitionTest
         drawSquares(image, squares);
 
         return 0;
-    };
-};
+    };*/
+}
