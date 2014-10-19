@@ -1,8 +1,10 @@
 package com.lamppost.barcode;
 
 import org.opencv.core.*;
+import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 
+import java.security.Timestamp;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -10,14 +12,18 @@ import java.util.List;
 
 public class StolenRectangleFinder
 {
-    public static void main(String[] args) {
+    static{ System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
 
-        Mat image = new Mat();
-        String tempDirPath = "";
+    public static void main(String[] args)
+    {
+        long startTime = System.currentTimeMillis();
 
-        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+        String tempDirPath = "/Users/santiagoramirez/Downloads/";
+        Mat image = Highgui.imread(tempDirPath + "detect-simple-shapes-feat-img1.png", Highgui.CV_LOAD_IMAGE_COLOR);
 
-        List<Rect> result = new LinkedList<Rect>();
+        Highgui.imwrite(tempDirPath + "output.png", image);
+
+        List<MatOfPoint> result = new LinkedList<MatOfPoint>();
 
         Mat pyr = new Mat();
         Mat timg = new Mat();
@@ -39,6 +45,9 @@ public class StolenRectangleFinder
             List<Mat> dst = new LinkedList<Mat>();
             dst.add(gray0);
             Core.mixChannels(src, dst, ch);
+            int N = 4;
+            double threshLow = 1;
+            double threshHigh = 1;
 
             // try several threshold levels
             for (int l = 0; l < N; l++) {
@@ -55,14 +64,12 @@ public class StolenRectangleFinder
                     // apply threshold if l!=0:
                     // tgray(x,y) = gray(x,y) < (l+1)*255/N ? 255 : 0
 
-                    Imgproc.threshold(gray0, gray, (l + 1) * 255 / N, 255,
-                            Imgproc.THRESH_BINARY);
+                    Imgproc.threshold(gray0, gray, (l + 1) * 255 / N, 255, Imgproc.THRESH_BINARY);
                 }
 
                 Mat hierarchy = new Mat();
                 // find contours and store them all as a list
-                Imgproc.findContours(gray, contours, hierarchy,
-                        Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
+                Imgproc.findContours(gray, contours, hierarchy, Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
                 MatOfPoint2f approx = new MatOfPoint2f();
 
                 Iterator<MatOfPoint> each = contours.iterator();
@@ -70,13 +77,11 @@ public class StolenRectangleFinder
                     MatOfPoint p = each.next();
                     MatOfPoint2f wrapper = new MatOfPoint2f();
                     wrapper.fromArray(p.toArray());
-                    Imgproc.approxPolyDP(wrapper, approx,
-                            Imgproc.arcLength(wrapper, true) * 0.02, true);
+                    Imgproc.approxPolyDP(wrapper, approx, Imgproc.arcLength(wrapper, true) * 0.02, true);
                     MatOfPoint approxMat = new MatOfPoint();
                     approxMat.fromArray(approx.toArray());
-                    if (approx.total() == 4
-                            && Math.abs(Imgproc.contourArea(approx)) > 50
-                            && Imgproc.isContourConvex(approxMat)) {
+                    if (approx.total() == 4 && Math.abs(Imgproc.contourArea(approx)) > 50 && Imgproc.isContourConvex(approxMat))
+                    {
                         double maxCosine = 0;
                         Point[] pArray = approx.toArray();
                         for (int j = 2; j <= 5; j++) {
@@ -92,21 +97,25 @@ public class StolenRectangleFinder
 
                         // Check if we need this shit
 
-                        /*if (maxCosine < 0.1) {
+                        int minWidthOfDetectedRect = 100;
+                        int minHeightOfDetectedRect = 100;
+
+                        if (maxCosine < 0.1) {
                             Rect r = Imgproc.boundingRect(approxMat);
-                            if (r.width >= minWidthOfDetectedRect && r.height >= minHieghtOfDetectedRect)
+                            if (approxMat.size().width >= minWidthOfDetectedRect && approxMat.size().height >= minHeightOfDetectedRect)
                             {
-                                if (!added(result, r))
-                                {
-                                    result.add(r);
-                                }
+                                result.add(approxMat);
                             }
-                        } */
+                        }
                     }
                 }
             }
         }
-        //drawRects(image.clone(), result, tempDirPath, "Detected_rectangles.png");
+        drawRects(image.clone(), result, tempDirPath, "Detected_rectangles.png");
+        long endTime = System.currentTimeMillis();
+        long elapsedTime = endTime - startTime;
+        System.out.println(elapsedTime);
+
         //return result;
     }
 
@@ -120,41 +129,15 @@ public class StolenRectangleFinder
     }
 
     // Maybe we can adapt this shit
-    /*void drawSquares(IplImage img, CvSeq squares) {
+    private static void drawRects(Mat img, List<MatOfPoint> squares, String tempDirPath, String outputImage)
+    {
+        for (MatOfPoint square : squares)
+        {
+            Point[] asArray = square.toArray();
 
-        //      Java translation: Here the code is somewhat different from the C version.
-        //      I was unable to get straight forward CvPoint[] arrays
-        //      working with "reader" and the "CV_READ_SEQ_ELEM".
-
-//        CvSeqReader reader = new CvSeqReader();
-
-        IplImage cpy = cvCloneImage(img);
-        int i = 0;
-
-        // Used by attempt 3
-        // Create a "super"-slice, consisting of the entire sequence of squares
-        CvSlice slice = new CvSlice(squares);
-
-        // initialize reader of the sequence
-//        cvStartReadSeq(squares, reader, 0);
-
-        // read 4 sequence elements at a time (all vertices of a square)
-        for(i = 0; i < squares.total(); i += 4) {     int count[] = new int[]{4};
-            // Attempt 3:
-            // This works, may be the "cleanest" solution, does not use the "reader"
-            CvPoint rect = new CvPoint(4);
-            int count[] = new int[]{4};
-            // get the 4 corner slice from the "super"-slice
-            cvCvtSeqToArray(squares, rect, slice.start_index(i).end_index(i + 4));
-
-            // draw the square as a closed polyline
-            // Java translation: gotcha (re-)setting the opening "position" of the CvPoint sequence thing
-            cvPolyLine(cpy, rect.position(0), count, 1, 1, CV_RGB(0,255,0), 3, CV_AA, 0);
+            Core.polylines(img, squares, true, new Scalar(2000));
         }
 
-        // show the resultant image
-        // cvShowImage(wndname, cpy);
-        canvas.showImage(cpy);
-        cvReleaseImage(cpy);
-    }*/
+        Highgui.imwrite(tempDirPath + outputImage, img);
+    }
 }
