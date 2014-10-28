@@ -4,6 +4,6 @@ public class PDF417Decoder
 {
     public static void main(String[] args)
     {
-        //PDF417ScanningDecoder.decode();
+        PDF417ScanningDecoder.decode();
     }
 }
