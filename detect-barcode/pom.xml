@@ -21,6 +21,13 @@
             <systemPath>${project.basedir}/lib/opencv-2410.jar</systemPath>
         </dependency>
 
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>core</artifactId>
+            <version>3.1.0</version>
+        </dependency>
+
+
     </dependencies>
 
 </project>

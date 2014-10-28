@@ -1,5 +1,10 @@
 package com.lamppost.barcode;
 
+import com.google.zxing.common.BitArray;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.pdf417.PDF417Reader;
+import com.google.zxing.pdf417.encoder.PDF417;
+import org.omg.CosNaming.NamingContextPackage.NotFound;
 import org.opencv.core.*;
 import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
@@ -9,13 +14,59 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import javax.imageio.ImageIO;
+
+import com.google.zxing.*;
+import com.google.zxing.common.HybridBinarizer;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
+import java.io.File;
+
 
 public class StolenRectangleFinder
-{
+        {
     static{ System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
 
-    public static void main(String[] args)
-    {
+    public static void main(String[] args) {
+        Result result = zxingMethod();
+        System.out.println("QR Code : "+result.getText());
+    }
+
+    public static Result zxingMethod() {
+        PDF417Reader reader = new PDF417Reader();
+        String tempDirPath = "/Users/Federico/Downloads/";
+        String imagePath = tempDirPath + "detect-simple-shapes-feat-img1.png";
+        try {
+//            BinaryBitmap binaryBitmap = new BinaryBitmap(new HybridBinarizer(new RGBLuminanceSource(640,480,ImageIO.read(new FileInputStream(image)))));
+//            Bitmap bitmap = (Bitmap)Bitmap.LoadFrom(imagePath);
+
+            BufferedImage img = ImageIO.read(new File(imagePath));
+
+            byte[] pixelsAsByte = ((DataBufferByte) img.getRaster().getDataBuffer()).getData();
+            int[] pixels = new int[pixelsAsByte.length];
+            for (int i = 0; i < pixelsAsByte.length; i++) {
+                pixels[i]=(int)pixelsAsByte[i];
+            }
+
+            LuminanceSource source = new RGBLuminanceSource(img.getWidth(), img.getHeight(),pixels);
+            Binarizer binarizer = new HybridBinarizer(source);
+            BinaryBitmap binaryBitmap = new BinaryBitmap(binarizer);
+
+            return reader.decode(binaryBitmap);
+        }
+        catch (java.io.FileNotFoundException e){}
+        catch (java.io.IOException e){}
+        catch (NotFoundException e){}
+        catch (FormatException e){}
+        catch (ChecksumException e){}
+            return null;
+            };
+
+
+
+
+
+    public static void opencv(){
         long startTime = System.currentTimeMillis();
 
         String tempDirPath = "/Users/santiagoramirez/Downloads/";
