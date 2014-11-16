@@ -4,7 +4,6 @@ import org.opencv.core.*;
 import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 
-import java.security.Timestamp;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -14,14 +13,17 @@ public class StolenRectangleFinder
 {
     static{ System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
 
+    private static final float ASPECT_RATIO = 3.23f;
+    private static final int MIN_WIDTH_OF_DETECTED_RECT = 1;
+    private static final int MIN_HEIGHT_OF_DETECTED_RECT = 1;
+    private static final float COSINE_THRESHOLD = 0.1f;
+
     public static void main(String[] args)
     {
         long startTime = System.currentTimeMillis();
 
-        String tempDirPath = "/Users/santiagoramirez/Downloads/";
-        Mat image = Highgui.imread(tempDirPath + "detect-simple-shapes-feat-img1.png", Highgui.CV_LOAD_IMAGE_COLOR);
-
-        Highgui.imwrite(tempDirPath + "output.png", image);
+        String tempDirPath = "/Users/santiagoramirez/Downloads/temp/";
+        Mat image = Highgui.imread(tempDirPath + "test3.jpg", Highgui.CV_LOAD_IMAGE_COLOR);
 
         List<MatOfPoint> result = new LinkedList<MatOfPoint>();
 
@@ -97,12 +99,10 @@ public class StolenRectangleFinder
 
                         // Check if we need this shit
 
-                        int minWidthOfDetectedRect = 100;
-                        int minHeightOfDetectedRect = 100;
-
-                        if (maxCosine < 0.1) {
+                        if (maxCosine < COSINE_THRESHOLD) {
                             Rect r = Imgproc.boundingRect(approxMat);
-                            if (approxMat.size().width >= minWidthOfDetectedRect && approxMat.size().height >= minHeightOfDetectedRect)
+                            float ratio = (float) r.height/ (float) r.width;
+                            if (ratio > ASPECT_RATIO - 0.5f && ratio < ASPECT_RATIO + 0.5f)
                             {
                                 result.add(approxMat);
                             }
@@ -131,12 +131,15 @@ public class StolenRectangleFinder
     // Maybe we can adapt this shit
     private static void drawRects(Mat img, List<MatOfPoint> squares, String tempDirPath, String outputImage)
     {
+        int i = 0;
         for (MatOfPoint square : squares)
         {
-            Point[] asArray = square.toArray();
-
-            Core.polylines(img, squares, true, new Scalar(2000));
+            Rect rect = Imgproc.boundingRect(square);
+            Mat croppedImage =  new Mat(img, rect);
+            Highgui.imwrite(tempDirPath + i++ + outputImage , croppedImage);
         }
+
+        Core.polylines(img, squares, true, new Scalar(2000));
 
         Highgui.imwrite(tempDirPath + outputImage, img);
     }
