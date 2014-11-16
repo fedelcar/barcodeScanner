@@ -1,13 +1,7 @@
 package com.lamppost.barcode;
 
-import com.google.zxing.common.BitArray;
-import com.google.zxing.common.BitMatrix;
-import com.google.zxing.pdf417.PDF417Reader;
-import com.google.zxing.pdf417.*;
-import com.google.zxing.pdf417.encoder.PDF417;
-import org.omg.CosNaming.NamingContextPackage.NotFound;
 import org.opencv.core.*;
-import org.opencv.highgui.*;
+import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 
 import java.security.Timestamp;
@@ -15,65 +9,16 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-import javax.imageio.ImageIO;
-
-import com.google.zxing.*;
-import com.google.zxing.common.HybridBinarizer;
-import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferByte;
-import java.io.File;
-
 
 public class StolenRectangleFinder
-        {
-//    static{ System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
+{
+    static{ System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
 
-    public static void main(String[] args) {
-//        Result result = zxingMethod();
-           opencv();
-    }
-
-//    public static Result zxingMethod() {
-//        PDF417Reader reader = new PDF417Reader();
-//        String tempDirPath = "/Users/Federico/Downloads/detect-simple-shapes-feat-img2.jpg";
-//        String imagePath = tempDirPath;
-//        try {
-//
-//
-//            BufferedImage img = ImageIO.read(new File(imagePath));
-//
-//            byte[] pixelsAsByte = ((DataBufferByte) img.getRaster().getDataBuffer()).getData();
-//            int[] pixels = new int[pixelsAsByte.length];
-//            for (int i = 0; i < pixelsAsByte.length; i++) {
-//                pixels[i]=(int)pixelsAsByte[i];
-//            }
-//
-//            LuminanceSource source = new RGBLuminanceSource(img.getWidth(), img.getHeight(),pixels);
-//            Binarizer binarizer = new HybridBinarizer(source);
-//            BinaryBitmap binaryBitmap = new BinaryBitmap(binarizer);
-//            Result result = reader.decode(binaryBitmap);
-//            System.out.println("QR Code : "+result.getText());
-//            return result;
-//        }
-//
-//        catch (NotFoundException e){
-//            System.out.println("Exception: " + e.getLocalizedMessage() + "  tostring: "+ e.toString());
-//        }
-//        catch (Exception e){
-//            System.out.println("Exception: " + e.getMessage() + "  tostring: "+ e.toString());
-//            }
-//
-//            return null;
-//            };
-
-
-
-
-
-    public static void opencv(){
+    public static void main(String[] args)
+    {
         long startTime = System.currentTimeMillis();
 
-        String tempDirPath = "/Users/Federico/Downloads/";
+        String tempDirPath = "/Users/santiagoramirez/Downloads/";
         Mat image = Highgui.imread(tempDirPath + "detect-simple-shapes-feat-img1.png", Highgui.CV_LOAD_IMAGE_COLOR);
 
         Highgui.imwrite(tempDirPath + "output.png", image);
@@ -138,7 +83,7 @@ public class StolenRectangleFinder
                     if (approx.total() == 4 && Math.abs(Imgproc.contourArea(approx)) > 50 && Imgproc.isContourConvex(approxMat))
                     {
                         double maxCosine = 0;
-                        org.opencv.core.Point[] pArray = approx.toArray();
+                        Point[] pArray = approx.toArray();
                         for (int j = 2; j <= 5; j++) {
                             // find the maximum cosine of the angle between
                             // joint edges
@@ -174,7 +119,7 @@ public class StolenRectangleFinder
         //return result;
     }
 
-    private static double angle(org.opencv.core.Point pt1, org.opencv.core.Point pt2, org.opencv.core.Point pt0) {
+    private static double angle(Point pt1, Point pt2, Point pt0) {
         double dx1 = pt1.x - pt0.x;
         double dy1 = pt1.y - pt0.y;
         double dx2 = pt2.x - pt0.x;
@@ -188,7 +133,7 @@ public class StolenRectangleFinder
     {
         for (MatOfPoint square : squares)
         {
-            org.opencv.core.Point[] asArray = square.toArray();
+            Point[] asArray = square.toArray();
 
             Core.polylines(img, squares, true, new Scalar(2000));
         }
