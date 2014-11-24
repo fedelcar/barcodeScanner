@@ -4,26 +4,54 @@ import org.opencv.core.*;
 import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
 
-public class StolenRectangleFinder
+public class BarcodeDecoder
 {
     static{ System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
 
+    /**
+     * Aspect ratio of the barcode to analyze. In this case for Argentinian DNI.
+     */
     private static final float ASPECT_RATIO = 3.23f;
-    private static final int MIN_WIDTH_OF_DETECTED_RECT = 1;
-    private static final int MIN_HEIGHT_OF_DETECTED_RECT = 1;
+
+    /**
+     * Threshold for the angle between the sides of the found rectangles. Affects how perfect the rectangles need to be
+     * to be found.
+     */
     private static final float COSINE_THRESHOLD = 0.1f;
 
     public static void main(String[] args)
     {
-        long startTime = System.currentTimeMillis();
+        try
+        {
+            findRectangles("/Users/santiagoramirez/Downloads/temp/test3.jpg");
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
 
-        String tempDirPath = "/Users/santiagoramirez/Downloads/temp/";
-        Mat image = Highgui.imread(tempDirPath + "test3.jpg", Highgui.CV_LOAD_IMAGE_COLOR);
+    /**
+     * Finds all rectangles in an image and writes them to disk
+     * @param imagePath The location of the image
+     * @throws IOException
+     */
+    public static void findRectangles(String imagePath) throws IOException
+    {
+        File imageFile = new File(imagePath);
+        if (!imageFile.exists())
+        {
+            throw new IOException();
+        }
+        String tempDirPath = imageFile.getParent();
+        Mat image = Highgui.imread(imageFile.getPath(), Highgui.CV_LOAD_IMAGE_COLOR);
 
         List<MatOfPoint> result = new LinkedList<MatOfPoint>();
 
@@ -89,15 +117,13 @@ public class StolenRectangleFinder
                         for (int j = 2; j <= 5; j++) {
                             // find the maximum cosine of the angle between
                             // joint edges
-                            double cosine = Math.abs(angle(pArray[j % 4], pArray[j - 2], pArray[(j - 1) % 4]));
+                            double cosine = Math.abs(angle(pArray[(j - 1) % 4], pArray[j % 4], pArray[j - 2]));
                             maxCosine = Math.max(maxCosine, cosine);
                         }
 
                         // if cosines of all angles are small
                         // (all angles are ~90 degree) then write quandrange
                         // vertices to resultant sequence
-
-                        // Check if we need this shit
 
                         if (maxCosine < COSINE_THRESHOLD) {
                             Rect r = Imgproc.boundingRect(approxMat);
@@ -111,15 +137,18 @@ public class StolenRectangleFinder
                 }
             }
         }
-        drawRects(image.clone(), result, tempDirPath, "Detected_rectangles.png");
-        long endTime = System.currentTimeMillis();
-        long elapsedTime = endTime - startTime;
-        System.out.println(elapsedTime);
-
-        //return result;
+        writeFoundRectangles(image.clone(), result, tempDirPath);
     }
 
-    private static double angle(Point pt1, Point pt2, Point pt0) {
+    /**
+     * Finds the angle between two segments given three points
+     * @param pt0 The point of intersection between the two segments
+     * @param pt1 Point belonging to first segment
+     * @param pt2 Point belonging to second segment
+     * @return
+     **/
+    private static double angle(Point pt0,Point pt1, Point pt2)
+    {
         double dx1 = pt1.x - pt0.x;
         double dy1 = pt1.y - pt0.y;
         double dx2 = pt2.x - pt0.x;
@@ -128,19 +157,26 @@ public class StolenRectangleFinder
         return (dx1*dx2 + dy1*dy2) / Math.sqrt((dx1*dx1 + dy1*dy1) * (dx2*dx2 + dy2*dy2) + 1e-10);
     }
 
-    // Maybe we can adapt this shit
-    private static void drawRects(Mat img, List<MatOfPoint> squares, String tempDirPath, String outputImage)
+    /**
+     * Writes found rectangles to individual files
+     * @param img {@link org.opencv.core.Mat} representing the original image
+     * @param squares Location of the found rectangles in the image
+     * @param imageDirPath Location directory of the original file
+     */
+    private static void writeFoundRectangles(Mat img, List<MatOfPoint> squares, String imageDirPath)
     {
         int i = 0;
+        File detectedRectangleDir = new File(imageDirPath + File.separator + "Detected_Rectangles");
+        if (!detectedRectangleDir.exists())
+        {
+            detectedRectangleDir.mkdir();
+        }
+
         for (MatOfPoint square : squares)
         {
             Rect rect = Imgproc.boundingRect(square);
             Mat croppedImage =  new Mat(img, rect);
-            Highgui.imwrite(tempDirPath + i++ + outputImage , croppedImage);
+            Highgui.imwrite(imageDirPath + File.separator + "Detected_Rectangles" + File.separator + "Detected_Rectangle_" + i++ + ".png", croppedImage);
         }
-
-        Core.polylines(img, squares, true, new Scalar(2000));
-
-        Highgui.imwrite(tempDirPath + outputImage, img);
     }
 }
