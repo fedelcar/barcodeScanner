@@ -1,15 +1,28 @@
 package com.lamppost.barcode;
 
+import com.google.zxing.*;
+import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
+import com.google.zxing.client.j2se.CommandLineRunner;
+import com.google.zxing.common.BitArray;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.common.HybridBinarizer;
 import org.opencv.core.*;
 import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 
+import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.google.zxing.pdf417.PDF417Reader;
+import com.google.zxing.client.*;
+
+import javax.imageio.ImageIO;
 
 public class BarcodeDecoder
 {
@@ -30,12 +43,37 @@ public class BarcodeDecoder
     {
         try
         {
-            findRectangles("/Users/santiagoramirez/Downloads/temp/test3.jpg");
+            String filePath =  "/Users/Federico/Downloads/detect-simple-shapes-feat-img1.png";
+            File sourceFile = new File(filePath);
+            File outputDir = new File(sourceFile.getParent() + File.separator + "Detected_Rectangles");
+            findRectangles(filePath);
+            for (File outputFile : outputDir.listFiles())
+            {
+                System.out.println(decodeBarcode(outputFile.getPath()));
+            }
         }
         catch (IOException e)
         {
             e.printStackTrace();
         }
+    }
+
+    public static String decodeBarcode(String imagePath) throws IOException
+    {
+        System.out.println(imagePath);
+        BufferedImage bufferedImage = ImageIO.read(new FileInputStream(imagePath));
+        BinaryBitmap binaryBitmap = new BinaryBitmap(new HybridBinarizer(new BufferedImageLuminanceSource(bufferedImage)));
+        PDF417Reader pdf417Reader = new PDF417Reader();
+        try
+        {
+            return pdf417Reader.decode(binaryBitmap).toString();
+        }
+        catch (FormatException | NotFoundException | ChecksumException e)
+        {
+            //e.printStackTrace();
+            //throw new IOException();
+        }
+        return "Not Found";
     }
 
     /**
