@@ -43,13 +43,26 @@ public class BarcodeDecoder
     {
         try
         {
-            String filePath =  "/Users/Federico/Downloads/detect-simple-shapes-feat-img1.png";
+            String filePath =  "/Users/santiagoramirez/Downloads/temp/967902_779009765494887_1835204307_n.jpg";
             File sourceFile = new File(filePath);
             File outputDir = new File(sourceFile.getParent() + File.separator + "Detected_Rectangles");
             findRectangles(filePath);
-            for (File outputFile : outputDir.listFiles())
+            String response = decodeBarcode(filePath);
+            if (response != null)
             {
-                System.out.println(decodeBarcode(outputFile.getPath()));
+                System.out.println(response);
+            }
+            else
+            {
+                for (File outputFile : outputDir.listFiles())
+                {
+                    response = decodeBarcode(outputFile.getPath());
+                    if(response != null)
+                    {
+                        System.out.println(response);
+                        break;
+                    }
+                }
             }
         }
         catch (IOException e)
@@ -60,20 +73,19 @@ public class BarcodeDecoder
 
     public static String decodeBarcode(String imagePath) throws IOException
     {
-        System.out.println(imagePath);
-        BufferedImage bufferedImage = ImageIO.read(new FileInputStream(imagePath));
-        BinaryBitmap binaryBitmap = new BinaryBitmap(new HybridBinarizer(new BufferedImageLuminanceSource(bufferedImage)));
-        PDF417Reader pdf417Reader = new PDF417Reader();
         try
         {
+            BufferedImage bufferedImage = ImageIO.read(new FileInputStream(imagePath));
+            BinaryBitmap binaryBitmap = new BinaryBitmap(new HybridBinarizer(new BufferedImageLuminanceSource(bufferedImage)));
+            PDF417Reader pdf417Reader = new PDF417Reader();
             return pdf417Reader.decode(binaryBitmap).toString();
         }
-        catch (FormatException | NotFoundException | ChecksumException e)
+        catch (NullPointerException | FormatException | NotFoundException | ChecksumException e)
         {
             //e.printStackTrace();
             //throw new IOException();
         }
-        return "Not Found";
+        return null;
     }
 
     /**
@@ -166,7 +178,7 @@ public class BarcodeDecoder
                         if (maxCosine < COSINE_THRESHOLD) {
                             Rect r = Imgproc.boundingRect(approxMat);
                             float ratio = (float) r.height/ (float) r.width;
-                            if (ratio > ASPECT_RATIO - 0.5f && ratio < ASPECT_RATIO + 0.5f)
+                            if (ratio > ASPECT_RATIO - 0.5f && ratio < ASPECT_RATIO + 0.5f || ratio > 1f/ASPECT_RATIO - 0.5f && ratio < 1f/ASPECT_RATIO + 0.5f)
                             {
                                 result.add(approxMat);
                             }
