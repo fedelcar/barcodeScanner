@@ -24,6 +24,8 @@ import com.google.zxing.client.*;
 
 import javax.imageio.ImageIO;
 
+import static java.lang.Math.atan;
+
 public class BarcodeDecoder
 {
     static{ System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
@@ -39,27 +41,39 @@ public class BarcodeDecoder
      */
     private static final float COSINE_THRESHOLD = 0.1f;
 
+    static int iterations = 0;
+
     public static void main(String[] args)
     {
+        long startMillis = 0;
+        long executionTime = 0;
+
         try
         {
-            String filePath =  "/Users/santiagoramirez/Downloads/temp/967902_779009765494887_1835204307_n.jpg";
+            startMillis = System.currentTimeMillis();
+            //System.out.println(startMillis + ": start");
+
+            String filePath =  "/Users/Federico/Downloads/PackDeFotos/7.jpg";
             File sourceFile = new File(filePath);
             File outputDir = new File(sourceFile.getParent() + File.separator + "Detected_Rectangles");
-            findRectangles(filePath);
+            for (File outputFile : outputDir.listFiles())
+            {
+                outputFile.delete();
+            }
             String response = decodeBarcode(filePath);
             if (response != null)
             {
-                System.out.println(response);
+                System.out.println(System.currentTimeMillis() + ": " + response);
             }
             else
             {
+                findRectangles(filePath);
                 for (File outputFile : outputDir.listFiles())
                 {
                     response = decodeBarcode(outputFile.getPath());
                     if(response != null)
                     {
-                        System.out.println(response);
+                        System.out.println(System.currentTimeMillis() + ": " + response);
                         break;
                     }
                 }
@@ -69,12 +83,18 @@ public class BarcodeDecoder
         {
             e.printStackTrace();
         }
+
+        executionTime = System.currentTimeMillis() - startMillis;
+        System.out.println(System.currentTimeMillis() + ": end (executionTime: " + executionTime + " millis - decodeBarcode: " + iterations);
     }
 
     public static String decodeBarcode(String imagePath) throws IOException
     {
+
         try
         {
+            //System.out.println(System.currentTimeMillis() + ": decodeBarcode");
+            iterations++;
             BufferedImage bufferedImage = ImageIO.read(new FileInputStream(imagePath));
             BinaryBitmap binaryBitmap = new BinaryBitmap(new HybridBinarizer(new BufferedImageLuminanceSource(bufferedImage)));
             PDF417Reader pdf417Reader = new PDF417Reader();
@@ -224,9 +244,38 @@ public class BarcodeDecoder
 
         for (MatOfPoint square : squares)
         {
+            Point bottom =  null;
+            Point left = null;
+            Point right = null;
+            Point top = null;
+            for (Point point : square.toArray())
+            {
+                if (top == null || point.y < top.y)
+                {
+                    top = point;
+                }
+                if (bottom == null || point.y > bottom.y)
+                {
+                    bottom = point;
+                }
+                if (left == null || point.x < bottom.x)
+                {
+                    left = point;
+                }
+                if (right == null || point.x > bottom.x)
+                {
+                    right = point;
+                }
+            }
+            double angle = atan(bottom.x-left.x / left.y-bottom.y);
             Rect rect = Imgproc.boundingRect(square);
-            Mat croppedImage =  new Mat(img, rect);
-            Highgui.imwrite(imageDirPath + File.separator + "Detected_Rectangles" + File.separator + "Detected_Rectangle_" + i++ + ".png", croppedImage);
+            Mat croppedImage = new Mat(img, rect);
+
+            Mat rotatedImage = new Mat();
+            Mat rotationMatrix = Imgproc.getRotationMatrix2D(new Point(right.x-left.x,top.y-bottom.y), 3*angle, 1);
+            Imgproc.warpAffine(croppedImage, rotatedImage, rotationMatrix, croppedImage.size());
+
+            Highgui.imwrite(imageDirPath + File.separator + "Detected_Rectangles" + File.separator + "Detected_Rectangle_" + i++ + ".png", rotatedImage);
         }
     }
 }
