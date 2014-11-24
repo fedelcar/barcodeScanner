@@ -29,19 +29,18 @@
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+    <properties>
+        <opencv.version>2.4.10</opencv.version>
+        <zxing.version>3.1.0</zxing.version>
+    </properties>
+
     <dependencyManagement>
         <dependencies>
 
             <dependency>
-                <groupId>org.bytedeco</groupId>
-                <artifactId>javacv</artifactId>
-                <version>0.9</version>
-            </dependency>
-
-            <dependency>
                 <groupId>com.google.zxing</groupId>
                 <artifactId>core</artifactId>
-                <version>3.1.0</version>
+                <version>${zxing.version}</version>
             </dependency>
 
         </dependencies>
