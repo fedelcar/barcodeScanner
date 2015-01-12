@@ -267,15 +267,61 @@ public class BarcodeDecoder
                     right = point;
                 }
             }
-            double angle = atan(bottom.x-left.x / left.y-bottom.y);
+
+            double angle = atan(bottom.x - left.x / left.y - bottom.y);
+
             Rect rect = Imgproc.boundingRect(square);
             Mat croppedImage = new Mat(img, rect);
 
-            Mat rotatedImage = new Mat();
-            Mat rotationMatrix = Imgproc.getRotationMatrix2D(new Point(right.x-left.x,top.y-bottom.y), 3*angle, 1);
-            Imgproc.warpAffine(croppedImage, rotatedImage, rotationMatrix, croppedImage.size());
+            try
+            {
+                MatOfPoint pija = new MatOfPoint(croppedImage);
 
-            Highgui.imwrite(imageDirPath + File.separator + "Detected_Rectangles" + File.separator + "Detected_Rectangle_" + i++ + ".png", rotatedImage);
+                Point[] punto = croppedImage.;
+//                Point[] punto = pija.toArray();
+
+                double maxx = 0;
+                double maxy = 0;
+                double minx = 200000;
+                double miny = 200000;
+
+                for (i = 0; i < punto.length; i++) {
+                    if (punto[i].x > maxx)
+                        maxx = punto[i].x;
+
+                    if (punto[i].y > maxy)
+                        maxy = punto[i].y;
+
+                    if (punto[i].x < minx)
+                        minx = punto[i].x;
+
+                    if (punto[i].y < miny)
+                        miny = punto[i].y;
+                }
+
+                double x = (maxx + minx) / 2 + minx;
+                double y = (maxy + miny) / 2 + miny;
+
+                System.out.println(x + ", " + y);
+
+//            System.out.println(minx + "," + miny + ") (" + maxx + "," + maxy);
+
+                Mat rotationMatrix = Imgproc.getRotationMatrix2D(new Point(300, 125), 180, 1);
+                //Imgproc.warpAffine(croppedImage, rotatedImage, rotationMatrix, croppedImage.size());
+
+                Mat rotatedImage = new Mat();
+                Imgproc.warpAffine(croppedImage, rotatedImage, rotationMatrix, croppedImage.size());
+
+                Highgui.imwrite(imageDirPath + File.separator + "Detected_Rectangles" + File.separator + "Rotated_Detected_Rectangle_" + i++ + ".png", rotatedImage);
+                Highgui.imwrite(imageDirPath + File.separator + "Detected_Rectangles" + File.separator + "Detected_Rectangle_" + i++ + ".png", croppedImage);
+            }
+
+
+            catch (IllegalArgumentException e)
+            {
+                System.out.println(e);
+        }
+
         }
     }
 }
