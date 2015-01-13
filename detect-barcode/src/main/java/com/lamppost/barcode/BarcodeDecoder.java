@@ -1,30 +1,24 @@
 package com.lamppost.barcode;
 
-import com.google.zxing.*;
+import com.google.zxing.BinaryBitmap;
+import com.google.zxing.ChecksumException;
+import com.google.zxing.FormatException;
+import com.google.zxing.NotFoundException;
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
-import com.google.zxing.client.j2se.CommandLineRunner;
-import com.google.zxing.common.BitArray;
-import com.google.zxing.common.BitMatrix;
 import com.google.zxing.common.HybridBinarizer;
+import com.google.zxing.pdf417.PDF417Reader;
 import org.opencv.core.*;
 import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-
-import com.google.zxing.pdf417.PDF417Reader;
-import com.google.zxing.client.*;
-
-import javax.imageio.ImageIO;
-
-import static java.lang.Math.atan;
 
 public class BarcodeDecoder
 {
@@ -53,7 +47,7 @@ public class BarcodeDecoder
             startMillis = System.currentTimeMillis();
             //System.out.println(startMillis + ": start");
 
-            String filePath =  "/Users/Federico/Downloads/PackDeFotos/7.jpg";
+            String filePath =  "/Users/santiagoramirez/Downloads/temp/10811609_779033065492557_278775239_n.jpg";
             File sourceFile = new File(filePath);
             File outputDir = new File(sourceFile.getParent() + File.separator + "Detected_Rectangles");
             for (File outputFile : outputDir.listFiles())
@@ -244,6 +238,7 @@ public class BarcodeDecoder
 
         for (MatOfPoint square : squares)
         {
+
             Point bottom =  null;
             Point left = null;
             Point right = null;
@@ -268,46 +263,19 @@ public class BarcodeDecoder
                 }
             }
 
-            double angle = atan(bottom.x - left.x / left.y - bottom.y);
+            // Get differences top left minus bottom left
+            double diff1 = top.x - bottom.x;
+            double diff2 = top.y - bottom.y;
+
+            // Get rotation in degrees
+            double rotation = Math.atan(diff1/diff2) * 180 / Math.PI;
 
             Rect rect = Imgproc.boundingRect(square);
             Mat croppedImage = new Mat(img, rect);
 
             try
             {
-                MatOfPoint pija = new MatOfPoint(croppedImage);
-
-                Point[] punto = croppedImage.;
-//                Point[] punto = pija.toArray();
-
-                double maxx = 0;
-                double maxy = 0;
-                double minx = 200000;
-                double miny = 200000;
-
-                for (i = 0; i < punto.length; i++) {
-                    if (punto[i].x > maxx)
-                        maxx = punto[i].x;
-
-                    if (punto[i].y > maxy)
-                        maxy = punto[i].y;
-
-                    if (punto[i].x < minx)
-                        minx = punto[i].x;
-
-                    if (punto[i].y < miny)
-                        miny = punto[i].y;
-                }
-
-                double x = (maxx + minx) / 2 + minx;
-                double y = (maxy + miny) / 2 + miny;
-
-                System.out.println(x + ", " + y);
-
-//            System.out.println(minx + "," + miny + ") (" + maxx + "," + maxy);
-
-                Mat rotationMatrix = Imgproc.getRotationMatrix2D(new Point(300, 125), 180, 1);
-                //Imgproc.warpAffine(croppedImage, rotatedImage, rotationMatrix, croppedImage.size());
+                Mat rotationMatrix = Imgproc.getRotationMatrix2D(new Point(croppedImage.cols()/2, croppedImage.rows()/2), Math.toDegrees(rotation), 1);
 
                 Mat rotatedImage = new Mat();
                 Imgproc.warpAffine(croppedImage, rotatedImage, rotationMatrix, croppedImage.size());
