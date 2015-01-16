@@ -47,29 +47,33 @@ public class BarcodeDecoder
             startMillis = System.currentTimeMillis();
             //System.out.println(startMillis + ": start");
 
-            String filePath =  "/Users/santiagoramirez/Downloads/temp/10811609_779033065492557_278775239_n.jpg";
-            File sourceFile = new File(filePath);
-            File outputDir = new File(sourceFile.getParent() + File.separator + "Detected_Rectangles");
-            for (File outputFile : outputDir.listFiles())
-            {
-                outputFile.delete();
-            }
-            String response = decodeBarcode(filePath);
-            if (response != null)
-            {
-                System.out.println(System.currentTimeMillis() + ": " + response);
-            }
-            else
-            {
-                findRectangles(filePath);
-                for (File outputFile : outputDir.listFiles())
-                {
-                    response = decodeBarcode(outputFile.getPath());
-                    if(response != null)
-                    {
-                        System.out.println(System.currentTimeMillis() + ": " + response);
-                        break;
+            for (int a = 1; a < 4; a++) {
+                try {
+
+                    String filePath = "/Users/Federico/Downloads/PackDeFotos/" + a + ".jpg";
+
+
+                    File sourceFile = new File(filePath);
+                    File outputDir = new File(sourceFile.getParent() + File.separator + "Detected_Rectangles");
+                    for (File outputFile : outputDir.listFiles()) {
+                        outputFile.delete();
                     }
+                    String response = decodeBarcode(filePath);
+                    if (response != null) {
+                        System.out.println(System.currentTimeMillis() + " - " + a + ": " + response);
+                    } else {
+                        findRectangles(filePath);
+                        for (File outputFile : outputDir.listFiles()) {
+                            response = decodeBarcode(outputFile.getPath());
+                            if (response != null) {
+                                System.out.println(System.currentTimeMillis() + " - " + a + ": " + response);
+                                break;
+                            }
+                        }
+                    }
+                }
+                catch (CvException e) {
+                    e.printStackTrace();
                 }
             }
         }
@@ -253,29 +257,58 @@ public class BarcodeDecoder
                 {
                     bottom = point;
                 }
-                if (left == null || point.x < bottom.x)
+                if (left == null || point.x < left.x)
                 {
                     left = point;
                 }
-                if (right == null || point.x > bottom.x)
+                if (right == null || point.x > right.x)
                 {
                     right = point;
                 }
             }
 
             // Get differences top left minus bottom left
-            double diff1 = top.x - bottom.x;
-            double diff2 = top.y - bottom.y;
+
+            //System.out.println(String.format("(%f, %f); (%f, %f)", top.x, top.y, left.x, left.y));
 
             // Get rotation in degrees
-            double rotation = Math.atan(diff1/diff2) * 180 / Math.PI;
+            double rotation = Math.atan((left.x - top.x) / (top.y - left.y));
+            //System.out.println(rotation*180/Math.PI);
 
             Rect rect = Imgproc.boundingRect(square);
+
+            System.out.println(rect.x);
+            System.out.println(rect.width);
+            System.out.println(img.cols());
+
+            rect.x -= 20;
+            rect.width += 40;
+            if (rect.x + rect.width > img.cols()) {
+                int dif = -(img.cols() - rect.x - rect.width);
+                dif +=10;
+                rect.x-=dif/2;
+                rect.width-=dif/2;
+            }
+            if (rect.x < 0) {
+                rect.x = 0;
+            }
+
+            rect.y -= 20;
+            rect.height += 40;
+            if (rect.y + rect.height > img.rows()) {
+                int dif = -(img.rows()-rect.y-rect.height);
+                rect.y-=dif/2;
+                rect.height-=dif/2;
+            }
+            if (rect.y < 0) {
+                rect.y = 0;
+
+            }
             Mat croppedImage = new Mat(img, rect);
 
             try
             {
-                Mat rotationMatrix = Imgproc.getRotationMatrix2D(new Point(croppedImage.cols()/2, croppedImage.rows()/2), Math.toDegrees(rotation), 1);
+                Mat rotationMatrix = Imgproc.getRotationMatrix2D(new Point(croppedImage.cols()/2, croppedImage.rows()/2),rotation*180/Math.PI, 1);
 
                 Mat rotatedImage = new Mat();
                 Imgproc.warpAffine(croppedImage, rotatedImage, rotationMatrix, croppedImage.size());
@@ -288,7 +321,7 @@ public class BarcodeDecoder
             catch (IllegalArgumentException e)
             {
                 System.out.println(e);
-        }
+            }
 
         }
     }
