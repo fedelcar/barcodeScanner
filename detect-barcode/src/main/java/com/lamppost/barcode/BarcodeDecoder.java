@@ -47,7 +47,7 @@ public class BarcodeDecoder
             startMillis = System.currentTimeMillis();
             //System.out.println(startMillis + ": start");
 
-            for (int a = 1; a < 4; a++) {
+            for (int a = 1; a < 18; a++) {
                 try {
 
                     String filePath = "/Users/Federico/Downloads/PackDeFotos/" + a + ".jpg";
@@ -277,33 +277,16 @@ public class BarcodeDecoder
 
             Rect rect = Imgproc.boundingRect(square);
 
-            System.out.println(rect.x);
-            System.out.println(rect.width);
-            System.out.println(img.cols());
+            int dif1 = Math.min(rect.x,40);
+            rect.x -= dif1;
+            int dif2 = Math.min(img.cols()-rect.width,40);
+            rect.width += dif2;
 
-            rect.x -= 20;
-            rect.width += 40;
-            if (rect.x + rect.width > img.cols()) {
-                int dif = -(img.cols() - rect.x - rect.width);
-                dif +=10;
-                rect.x-=dif/2;
-                rect.width-=dif/2;
-            }
-            if (rect.x < 0) {
-                rect.x = 0;
-            }
+            int dif3 = Math.min(rect.y,40);
+            rect.y-=dif3;
+            int dif4 = Math.min(img.rows()-rect.height,40);
+            rect.height+=dif4;
 
-            rect.y -= 20;
-            rect.height += 40;
-            if (rect.y + rect.height > img.rows()) {
-                int dif = -(img.rows()-rect.y-rect.height);
-                rect.y-=dif/2;
-                rect.height-=dif/2;
-            }
-            if (rect.y < 0) {
-                rect.y = 0;
-
-            }
             Mat croppedImage = new Mat(img, rect);
 
             try
