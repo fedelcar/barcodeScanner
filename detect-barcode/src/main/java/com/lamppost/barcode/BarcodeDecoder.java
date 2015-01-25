@@ -1,5 +1,7 @@
 package com.lamppost.barcode;
 
+import com.github.sarxos.webcam.Webcam;
+import com.github.sarxos.webcam.WebcamResolution;
 import com.google.zxing.BinaryBitmap;
 import com.google.zxing.ChecksumException;
 import com.google.zxing.FormatException;
@@ -12,10 +14,15 @@ import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 
 import javax.imageio.ImageIO;
+import javax.imageio.stream.ImageInputStream;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
+import java.awt.image.DataBufferInt;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -35,6 +42,8 @@ public class BarcodeDecoder
      */
     private static final float COSINE_THRESHOLD = 0.1f;
 
+    private static final String FILEPATH = "/Users/Federico/Downloads/PackDeFotos/stream.jpg";
+
     static int iterations = 0;
 
     public static void main(String[] args)
@@ -45,37 +54,53 @@ public class BarcodeDecoder
         try
         {
             startMillis = System.currentTimeMillis();
-            //System.out.println(startMillis + ": start");
 
-            for (int a = 1; a < 18; a++) {
+            Webcam webcam = Webcam.getDefault();
+            webcam.close();
+            webcam.setViewSize(WebcamResolution.VGA.getSize());
+            webcam.open();
+
+            do {
+
                 try {
 
-                    String filePath = "/Users/Federico/Downloads/PackDeFotos/" + a + ".jpg";
+                    //ImageInputStream stream = ImageIO.createImageInputStream(webcam.getImage());
 
+                    BufferedImage stream = webcam.getImage();
 
-                    File sourceFile = new File(filePath);
+                    //ImageIO.write(stream, "JPG", new File(FILEPATH));
+
+                    if (webcam.getImage() != null)
+                        System.out.println(System.currentTimeMillis() + " - Imagen leida.");
+
+                    File sourceFile = new File(FILEPATH);
                     File outputDir = new File(sourceFile.getParent() + File.separator + "Detected_Rectangles");
                     for (File outputFile : outputDir.listFiles()) {
                         outputFile.delete();
                     }
-                    String response = decodeBarcode(filePath);
+
+                    String response = decodeBarcode(stream);
+
                     if (response != null) {
-                        System.out.println(System.currentTimeMillis() + " - " + a + ": " + response);
+                        System.out.println(System.currentTimeMillis() + " - " + response + " (ZXing)");
                     } else {
-                        findRectangles(filePath);
+                        findRectangles(stream);
                         for (File outputFile : outputDir.listFiles()) {
-                            response = decodeBarcode(outputFile.getPath());
+                            response = decodeBarcode(stream);
                             if (response != null) {
-                                System.out.println(System.currentTimeMillis() + " - " + a + ": " + response);
+                                System.out.println(System.currentTimeMillis() + " - " + response);
                                 break;
                             }
                         }
                     }
+
+                    stream.flush();
                 }
                 catch (CvException e) {
                     e.printStackTrace();
                 }
             }
+            while (1==1);
         }
         catch (IOException e)
         {
@@ -86,15 +111,16 @@ public class BarcodeDecoder
         System.out.println(System.currentTimeMillis() + ": end (executionTime: " + executionTime + " millis - decodeBarcode: " + iterations);
     }
 
-    public static String decodeBarcode(String imagePath) throws IOException
+    public static String decodeBarcode(BufferedImage image) throws IOException
     {
 
         try
         {
             //System.out.println(System.currentTimeMillis() + ": decodeBarcode");
             iterations++;
-            BufferedImage bufferedImage = ImageIO.read(new FileInputStream(imagePath));
-            BinaryBitmap binaryBitmap = new BinaryBitmap(new HybridBinarizer(new BufferedImageLuminanceSource(bufferedImage)));
+            //BufferedImage bufferedImage = ImageIO.read(image);
+
+            BinaryBitmap binaryBitmap = new BinaryBitmap(new HybridBinarizer(new BufferedImageLuminanceSource(image)));
             PDF417Reader pdf417Reader = new PDF417Reader();
             return pdf417Reader.decode(binaryBitmap).toString();
         }
@@ -106,20 +132,41 @@ public class BarcodeDecoder
         return null;
     }
 
+    private static Mat getMatFromBufferedImage(BufferedImage bufferedImage)
+    {
+    // NO ESTA PROBADO.
+    /*
+        BufferedImage image = new BufferedImage(bufferedImage.getWidth(), bufferedImage.getHeight(), BufferedImage.TYPE_INT_RGB);
+
+        int[] data = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
+        ByteBuffer byteBuffer = ByteBuffer.allocate(data.length * 4);
+        IntBuffer intBuffer = byteBuffer.asIntBuffer();
+        intBuffer.put(data);
+
+        Mat mat = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC3);
+        mat.put(0, 0, byteBuffer.array());
+        return mat;
+    */
+    }
+
     /**
      * Finds all rectangles in an image and writes them to disk
-     * @param imagePath The location of the image
+     * @param bufferedImage The buffered image
      * @throws IOException
      */
-    public static void findRectangles(String imagePath) throws IOException
+    public static void findRectangles(BufferedImage bufferedImage) throws IOException
     {
-        File imageFile = new File(imagePath);
+        /*File imageFile = new File(imagePath);
         if (!imageFile.exists())
         {
             throw new IOException();
         }
         String tempDirPath = imageFile.getParent();
+
         Mat image = Highgui.imread(imageFile.getPath(), Highgui.CV_LOAD_IMAGE_COLOR);
+        */
+
+        Mat image = getMatFromBufferedImage(bufferedImage);
 
         List<MatOfPoint> result = new LinkedList<MatOfPoint>();
 
@@ -205,7 +252,7 @@ public class BarcodeDecoder
                 }
             }
         }
-        writeFoundRectangles(image.clone(), result, tempDirPath);
+        writeFoundRectangles(image.clone(), result, FILEPATH);
     }
 
     /**
@@ -277,9 +324,9 @@ public class BarcodeDecoder
 
             Rect rect = Imgproc.boundingRect(square);
 
-            int dif1 = Math.min(rect.x,40);
+            int dif1 = Math.min(rect.x, 40);
             rect.x -= dif1;
-            int dif2 = Math.min(img.cols()-rect.width,40);
+            int dif2 = Math.min(img.cols() - rect.width, 40);
             rect.width += dif2;
 
             int dif3 = Math.min(rect.y,40);
