@@ -43,6 +43,7 @@ public class BarcodeDecoder
     private static final float COSINE_THRESHOLD = 0.1f;
 
     private static final String FILEPATH = "/Users/Federico/Downloads/PackDeFotos/stream.jpg";
+    private static final String FILESPATH = "/Users/Federico/Downloads/PackDeFotos/stream.jpg";
 
     static int iterations = 0;
 
@@ -67,8 +68,7 @@ public class BarcodeDecoder
                     //ImageInputStream stream = ImageIO.createImageInputStream(webcam.getImage());
 
                     BufferedImage stream = webcam.getImage();
-
-                    //ImageIO.write(stream, "JPG", new File(FILEPATH));
+                    ImageIO.write(stream, "JPG", new File(FILEPATH));
 
                     if (webcam.getImage() != null)
                         System.out.println(System.currentTimeMillis() + " - Imagen leida.");
@@ -134,8 +134,6 @@ public class BarcodeDecoder
 
     private static Mat getMatFromBufferedImage(BufferedImage bufferedImage)
     {
-    // NO ESTA PROBADO.
-    /*
         BufferedImage image = new BufferedImage(bufferedImage.getWidth(), bufferedImage.getHeight(), BufferedImage.TYPE_INT_RGB);
 
         int[] data = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
@@ -146,7 +144,6 @@ public class BarcodeDecoder
         Mat mat = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC3);
         mat.put(0, 0, byteBuffer.array());
         return mat;
-    */
     }
 
     /**
@@ -164,7 +161,7 @@ public class BarcodeDecoder
         String tempDirPath = imageFile.getParent();
 
         Mat image = Highgui.imread(imageFile.getPath(), Highgui.CV_LOAD_IMAGE_COLOR);
-        */
+*/
 
         Mat image = getMatFromBufferedImage(bufferedImage);
 
@@ -252,7 +249,7 @@ public class BarcodeDecoder
                 }
             }
         }
-        writeFoundRectangles(image.clone(), result, FILEPATH);
+        writeFoundRectangles(image.clone(), result, FILESPATH);
     }
 
     /**
