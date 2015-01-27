@@ -13,13 +13,9 @@ import org.opencv.core.*;
 import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 
-import javax.imageio.ImageIO;
-import javax.imageio.stream.ImageInputStream;
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferByte;
 import java.awt.image.DataBufferInt;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
@@ -29,7 +25,10 @@ import java.util.List;
 
 public class BarcodeDecoder
 {
-    static{ System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
+    static
+    {
+        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+    }
 
     /**
      * Aspect ratio of the barcode to analyze. In this case for Argentinian DNI.
@@ -43,7 +42,6 @@ public class BarcodeDecoder
     private static final float COSINE_THRESHOLD = 0.1f;
 
     private static final String FILEPATH = "/Users/Federico/Downloads/PackDeFotos/stream.jpg";
-    private static final String FILESPATH = "/Users/Federico/Downloads/PackDeFotos/stream.jpg";
 
     static int iterations = 0;
 
@@ -52,66 +50,68 @@ public class BarcodeDecoder
         long startMillis = 0;
         long executionTime = 0;
 
-        try
+        startMillis = System.currentTimeMillis();
+
+        Webcam webcam = Webcam.getDefault();
+        webcam.close();
+        webcam.setViewSize(WebcamResolution.VGA.getSize());
+        webcam.open();
+
+        do
         {
-            startMillis = System.currentTimeMillis();
 
-            Webcam webcam = Webcam.getDefault();
-            webcam.close();
-            webcam.setViewSize(WebcamResolution.VGA.getSize());
-            webcam.open();
+            try
+            {
 
-            do {
+                BufferedImage stream = webcam.getImage();
+                //ImageIO.write(stream, "JPG", new File(FILEPATH));
 
-                try {
+                if (webcam.getImage() != null)
+                {
+                    System.out.println(System.currentTimeMillis() + " - Imagen leida.");
+                }
 
-                    //ImageInputStream stream = ImageIO.createImageInputStream(webcam.getImage());
+                // Start delete
+                File sourceFile = new File(FILEPATH);
+                File outputDir = new File(sourceFile.getParent() + File.separator + "Detected_Rectangles");
+                for (File outputFile : outputDir.listFiles())
+                {
+                    outputFile.delete();
+                }
+                // End delete
 
-                    BufferedImage stream = webcam.getImage();
-                    ImageIO.write(stream, "JPG", new File(FILEPATH));
+                String response = decodeBarcode(stream);
 
-                    if (webcam.getImage() != null)
-                        System.out.println(System.currentTimeMillis() + " - Imagen leida.");
-
-                    File sourceFile = new File(FILEPATH);
-                    File outputDir = new File(sourceFile.getParent() + File.separator + "Detected_Rectangles");
-                    for (File outputFile : outputDir.listFiles()) {
-                        outputFile.delete();
-                    }
-
-                    String response = decodeBarcode(stream);
-
-                    if (response != null) {
-                        System.out.println(System.currentTimeMillis() + " - " + response + " (ZXing)");
-                    } else {
-                        findRectangles(stream);
-                        for (File outputFile : outputDir.listFiles()) {
-                            response = decodeBarcode(stream);
-                            if (response != null) {
-                                System.out.println(System.currentTimeMillis() + " - " + response);
-                                break;
-                            }
+                if (response != null)
+                {
+                    System.out.println(System.currentTimeMillis() + " - " + response + " (ZXing)");
+                }
+                else
+                {
+                    List<BufferedImage> bufferedImages = findRectangles(stream);
+                    for (BufferedImage bufferedImage : bufferedImages)
+                    {
+                        response = decodeBarcode(bufferedImage);
+                        if (response != null)
+                        {
+                            System.out.println(System.currentTimeMillis() + " - " + response);
+                            break;
                         }
                     }
-
-                    stream.flush();
-                }
-                catch (CvException e) {
-                    e.printStackTrace();
                 }
             }
-            while (1==1);
+            catch (CvException e)
+            {
+                e.printStackTrace();
+            }
         }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        while (1 == 1);
 
-        executionTime = System.currentTimeMillis() - startMillis;
-        System.out.println(System.currentTimeMillis() + ": end (executionTime: " + executionTime + " millis - decodeBarcode: " + iterations);
+        //executionTime = System.currentTimeMillis() - startMillis;
+        //System.out.println(System.currentTimeMillis() + ": end (executionTime: " + executionTime + " millis - decodeBarcode: " + iterations);
     }
 
-    public static String decodeBarcode(BufferedImage image) throws IOException
+    public static String decodeBarcode(BufferedImage image)
     {
 
         try
@@ -148,10 +148,11 @@ public class BarcodeDecoder
 
     /**
      * Finds all rectangles in an image and writes them to disk
+     *
      * @param bufferedImage The buffered image
      * @throws IOException
      */
-    public static void findRectangles(BufferedImage bufferedImage) throws IOException
+    public static List<BufferedImage> findRectangles(BufferedImage bufferedImage)
     {
         /*File imageFile = new File(imagePath);
         if (!imageFile.exists())
@@ -165,7 +166,7 @@ public class BarcodeDecoder
 
         Mat image = getMatFromBufferedImage(bufferedImage);
 
-        List<MatOfPoint> result = new LinkedList<MatOfPoint>();
+        List<BufferedImage> result = new LinkedList<>();
 
         Mat pyr = new Mat();
         Mat timg = new Mat();
@@ -178,8 +179,9 @@ public class BarcodeDecoder
         List<MatOfPoint> contours = new LinkedList<MatOfPoint>();
 
         // find squares in every color plane of the image
-        for (int c = 0; c < 3; c++) {
-            int chArr[] = { c, 0 };
+        for (int c = 0; c < 3; c++)
+        {
+            int chArr[] = {c, 0};
             MatOfInt ch = new MatOfInt();
             ch.fromArray(chArr);
             List<Mat> src = new LinkedList<Mat>();
@@ -192,17 +194,21 @@ public class BarcodeDecoder
             double threshHigh = 1;
 
             // try several threshold levels
-            for (int l = 0; l < N; l++) {
+            for (int l = 0; l < N; l++)
+            {
                 // hack: use Canny instead of zero threshold level.
                 // Canny helps to catch squares with gradient shading
-                if (l == 0) {
+                if (l == 0)
+                {
                     // apply Canny. Take the upper threshold from slider
                     // and set the lower to 0 (which forces edges merging)
                     Imgproc.Canny(gray0, gray, threshLow, threshHigh);
                     // dilate canny output to remove potential
                     // holes between edge segments
                     Imgproc.dilate(gray, gray, new Mat());
-                } else {
+                }
+                else
+                {
                     // apply threshold if l!=0:
                     // tgray(x,y) = gray(x,y) < (l+1)*255/N ? 255 : 0
 
@@ -215,7 +221,8 @@ public class BarcodeDecoder
                 MatOfPoint2f approx = new MatOfPoint2f();
 
                 Iterator<MatOfPoint> each = contours.iterator();
-                while (each.hasNext()) {
+                while (each.hasNext())
+                {
                     MatOfPoint p = each.next();
                     MatOfPoint2f wrapper = new MatOfPoint2f();
                     wrapper.fromArray(p.toArray());
@@ -226,7 +233,8 @@ public class BarcodeDecoder
                     {
                         double maxCosine = 0;
                         Point[] pArray = approx.toArray();
-                        for (int j = 2; j <= 5; j++) {
+                        for (int j = 2; j <= 5; j++)
+                        {
                             // find the maximum cosine of the angle between
                             // joint edges
                             double cosine = Math.abs(angle(pArray[(j - 1) % 4], pArray[j % 4], pArray[j - 2]));
@@ -237,42 +245,63 @@ public class BarcodeDecoder
                         // (all angles are ~90 degree) then write quandrange
                         // vertices to resultant sequence
 
-                        if (maxCosine < COSINE_THRESHOLD) {
+                        if (maxCosine < COSINE_THRESHOLD)
+                        {
                             Rect r = Imgproc.boundingRect(approxMat);
-                            float ratio = (float) r.height/ (float) r.width;
-                            if (ratio > ASPECT_RATIO - 0.5f && ratio < ASPECT_RATIO + 0.5f || ratio > 1f/ASPECT_RATIO - 0.5f && ratio < 1f/ASPECT_RATIO + 0.5f)
+                            float ratio = (float) r.height / (float) r.width;
+                            if (ratio > ASPECT_RATIO - 0.5f && ratio < ASPECT_RATIO + 0.5f || ratio > 1f / ASPECT_RATIO - 0.5f && ratio < 1f / ASPECT_RATIO + 0.5f)
                             {
-                                result.add(approxMat);
+                                result.add(toBufferedImage(approxMat));
                             }
                         }
                     }
                 }
             }
         }
-        writeFoundRectangles(image.clone(), result, FILESPATH);
+        return result;
     }
 
     /**
      * Finds the angle between two segments given three points
+     *
      * @param pt0 The point of intersection between the two segments
      * @param pt1 Point belonging to first segment
      * @param pt2 Point belonging to second segment
      * @return
-     **/
-    private static double angle(Point pt0,Point pt1, Point pt2)
+     */
+    private static double angle(Point pt0, Point pt1, Point pt2)
     {
         double dx1 = pt1.x - pt0.x;
         double dy1 = pt1.y - pt0.y;
         double dx2 = pt2.x - pt0.x;
         double dy2 = pt2.y - pt0.y;
 
-        return (dx1*dx2 + dy1*dy2) / Math.sqrt((dx1*dx1 + dy1*dy1) * (dx2*dx2 + dy2*dy2) + 1e-10);
+        return (dx1 * dx2 + dy1 * dy2) / Math.sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
+    }
+
+    private static BufferedImage toBufferedImage(Mat in)
+    {
+        BufferedImage bufferedImage;
+        byte[] data = new byte[640 * 480 * (int) in.elemSize()];
+        int type;
+        in.get(0, 0, data);
+
+        if(in.channels() == 1)
+            type = BufferedImage.TYPE_BYTE_GRAY;
+        else
+            type = BufferedImage.TYPE_3BYTE_BGR;
+
+        bufferedImage = new BufferedImage(640, 480, type);
+
+        bufferedImage.getRaster().setDataElements(0, 0, 640, 480, data);
+        return bufferedImage;
     }
 
     /**
      * Writes found rectangles to individual files
-     * @param img {@link org.opencv.core.Mat} representing the original image
-     * @param squares Location of the found rectangles in the image
+     *
+     * @param img          {@link org.opencv.core.Mat} representing the original image
+     * @param squares      Location of the found rectangles in the image
      * @param imageDirPath Location directory of the original file
      */
     private static void writeFoundRectangles(Mat img, List<MatOfPoint> squares, String imageDirPath)
@@ -287,7 +316,7 @@ public class BarcodeDecoder
         for (MatOfPoint square : squares)
         {
 
-            Point bottom =  null;
+            Point bottom = null;
             Point left = null;
             Point right = null;
             Point top = null;
@@ -326,16 +355,16 @@ public class BarcodeDecoder
             int dif2 = Math.min(img.cols() - rect.width, 40);
             rect.width += dif2;
 
-            int dif3 = Math.min(rect.y,40);
-            rect.y-=dif3;
-            int dif4 = Math.min(img.rows()-rect.height,40);
-            rect.height+=dif4;
+            int dif3 = Math.min(rect.y, 40);
+            rect.y -= dif3;
+            int dif4 = Math.min(img.rows() - rect.height, 40);
+            rect.height += dif4;
 
             Mat croppedImage = new Mat(img, rect);
 
             try
             {
-                Mat rotationMatrix = Imgproc.getRotationMatrix2D(new Point(croppedImage.cols()/2, croppedImage.rows()/2),rotation*180/Math.PI, 1);
+                Mat rotationMatrix = Imgproc.getRotationMatrix2D(new Point(croppedImage.cols() / 2, croppedImage.rows() / 2), rotation * 180 / Math.PI, 1);
 
                 Mat rotatedImage = new Mat();
                 Imgproc.warpAffine(croppedImage, rotatedImage, rotationMatrix, croppedImage.size());
@@ -343,8 +372,6 @@ public class BarcodeDecoder
                 Highgui.imwrite(imageDirPath + File.separator + "Detected_Rectangles" + File.separator + "Rotated_Detected_Rectangle_" + i++ + ".png", rotatedImage);
                 Highgui.imwrite(imageDirPath + File.separator + "Detected_Rectangles" + File.separator + "Detected_Rectangle_" + i++ + ".png", croppedImage);
             }
-
-
             catch (IllegalArgumentException e)
             {
                 System.out.println(e);
