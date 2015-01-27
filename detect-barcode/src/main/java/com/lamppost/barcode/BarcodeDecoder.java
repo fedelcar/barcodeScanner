@@ -267,7 +267,9 @@ public class BarcodeDecoder
         BufferedImage bufferedImage;
         byte[] data = new byte[640 * 480 * (int) in.elemSize()];
         int type;
-        in.get(0, 0, data);
+        Mat mat = new Mat();
+        in.convertTo(mat, CvType.CV_8U);
+        mat.get(0, 0, data);
 
         if(in.channels() == 1)
             type = BufferedImage.TYPE_BYTE_GRAY;
