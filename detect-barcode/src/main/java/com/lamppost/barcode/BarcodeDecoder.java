@@ -13,7 +13,9 @@ import org.opencv.core.*;
 import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
@@ -39,6 +41,7 @@ public class BarcodeDecoder
     private static final float COSINE_THRESHOLD = 0.1f;
 
     private static final String FILEPATH = "/Users/Federico/Downloads/PackDeFotos/stream.jpg";
+    private static final String FILESPATH = "/Users/Federico/Downloads/PackDeFotos/";
 
     static int iterations = 0;
 
@@ -61,7 +64,7 @@ public class BarcodeDecoder
             {
 
                 BufferedImage stream = webcam.getImage();
-                //ImageIO.write(stream, "JPG", new File(FILEPATH));
+                ImageIO.write(stream, "JPG", new File(FILEPATH));
 
                 if (webcam.getImage() != null)
                 {
@@ -98,6 +101,10 @@ public class BarcodeDecoder
                 }
             }
             catch (CvException e)
+            {
+                e.printStackTrace();
+            }
+            catch (IOException e)
             {
                 e.printStackTrace();
             }
@@ -147,7 +154,11 @@ public class BarcodeDecoder
         Mat image = Highgui.imread(imageFile.getPath(), Highgui.CV_LOAD_IMAGE_COLOR);
 */
 
-        Mat image = toMat(bufferedImage);
+        Mat image = toMat2(bufferedImage);
+
+//        byte[] pito = ((DataBufferByte) bufferedImage.getRaster().getDataBuffer()).getData();
+//        Mat image = new Mat(new Size(bufferedImage.getWidth(), bufferedImage.getHeight()), CvType.CV_8U);
+//        image.put(0, 0, pito);
 
         List<BufferedImage> result = new LinkedList<>();
 
@@ -241,6 +252,7 @@ public class BarcodeDecoder
                 }
             }
         }
+
         return result;
     }
 
@@ -282,15 +294,31 @@ public class BarcodeDecoder
         return bufferedImage;
     }
 
+
+    private static Mat toMat2(BufferedImage in)
+    {
+        BufferedImage image = in;
+        byte[] data = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
+        Mat mat = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC3);
+        mat.put(0, 0, data);
+
+        return mat;
+    }
+
     private static Mat toMat(BufferedImage in)
     {
         Mat out;
         byte[] data;
+
+        byte[] pito = ((DataBufferByte) in.getRaster().getDataBuffer()).getData();
+        out = new Mat(new Size(in.getWidth(), in.getHeight()), CvType.CV_8U);
+        out.put(0, 0, pito);
         int r, g, b;
+//        int pija = CvType.CV_8U;
 
         if(in.getType() == BufferedImage.TYPE_INT_RGB)
         {
-            out = new Mat(480, 640, CvType.CV_8UC3);
+//            out = new Mat(480, 640, pija);
             data = new byte[640 * 480 * (int)out.elemSize()];
             int[] dataBuff = in.getRGB(0, 0, 640, 480, null, 0, 640);
             for(int i = 0; i < dataBuff.length; i++)
@@ -302,7 +330,7 @@ public class BarcodeDecoder
         }
         else
         {
-            out = new Mat(480, 640, CvType.CV_8UC1);
+//            out = new Mat(480, 640, pija);
             data = new byte[640 * 480 * (int)out.elemSize()];
             int[] dataBuff = in.getRGB(0, 0, 640, 480, null, 0, 640);
             for(int i = 0; i < dataBuff.length; i++)
