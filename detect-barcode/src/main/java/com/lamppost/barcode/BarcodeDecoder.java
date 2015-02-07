@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 
 public class BarcodeDecoder
 {
@@ -43,20 +44,12 @@ public class BarcodeDecoder
     private static final String FILEPATH = "/Users/Federico/Downloads/PackDeFotos/stream.jpg";
     private static final String FILESPATH = "/Users/Federico/Downloads/PackDeFotos/";
 
-    static int iterations = 0;
-
     public static void main(String[] args)
     {
-        long startMillis = 0;
-        long executionTime = 0;
-
-        startMillis = System.currentTimeMillis();
-
         Webcam webcam = Webcam.getDefault();
         webcam.close();
         webcam.setViewSize(WebcamResolution.VGA.getSize());
         webcam.open();
-
         do
         {
 
@@ -71,16 +64,9 @@ public class BarcodeDecoder
                     System.out.println(System.currentTimeMillis() + " - Imagen leida.");
                 }
 
-                // Start delete
-                File sourceFile = new File(FILEPATH);
-                File outputDir = new File(sourceFile.getParent() + File.separator + "Detected_Rectangles");
-                for (File outputFile : outputDir.listFiles())
-                {
-                    outputFile.delete();
-                }
-                // End delete
+                deleteOldFiles();
 
-                String response = decodeBarcode(stream);
+                String response = decodeStraightBarcode(stream);
 
                 if (response != null)
                 {
@@ -91,7 +77,7 @@ public class BarcodeDecoder
                     List<BufferedImage> bufferedImages = findRectangles(stream);
                     for (BufferedImage bufferedImage : bufferedImages)
                     {
-                        response = decodeBarcode(bufferedImage);
+                        response = decodeStraightBarcode(bufferedImage);
                         if (response != null)
                         {
                             System.out.println(System.currentTimeMillis() + " - " + response);
@@ -100,38 +86,43 @@ public class BarcodeDecoder
                     }
                 }
             }
-            catch (CvException e)
-            {
-                e.printStackTrace();
-            }
-            catch (IOException e)
+            catch (CvException | IOException e)
             {
                 e.printStackTrace();
             }
         }
         while (1 == 1);
-
-        //executionTime = System.currentTimeMillis() - startMillis;
-        //System.out.println(System.currentTimeMillis() + ": end (executionTime: " + executionTime + " millis - decodeBarcode: " + iterations);
     }
 
-    public static String decodeBarcode(BufferedImage image)
+    /**
+     * Delete old files
+     */
+    private static void deleteOldFiles()
     {
+        File sourceFile = new File(FILEPATH);
+        File outputDir = new File(sourceFile.getParent() + File.separator + "Detected_Rectangles");
+        for (File outputFile : outputDir.listFiles())
+        {
+            outputFile.delete();
+        }
+    }
 
+    /**
+     * Decode barcode when it's not rotated
+     * @param image The image with the barcode
+     * @return The string
+     */
+    public static String decodeStraightBarcode(BufferedImage image)
+    {
         try
         {
-            //System.out.println(System.currentTimeMillis() + ": decodeBarcode");
-            iterations++;
-            //BufferedImage bufferedImage = ImageIO.read(image);
-
             BinaryBitmap binaryBitmap = new BinaryBitmap(new HybridBinarizer(new BufferedImageLuminanceSource(image)));
             PDF417Reader pdf417Reader = new PDF417Reader();
             return pdf417Reader.decode(binaryBitmap).toString();
         }
         catch (NullPointerException | FormatException | NotFoundException | ChecksumException e)
         {
-            //e.printStackTrace();
-            //throw new IOException();
+            e.printStackTrace();
         }
         return null;
     }
@@ -144,15 +135,9 @@ public class BarcodeDecoder
      */
     public static List<BufferedImage> findRectangles(BufferedImage bufferedImage)
     {
-        /*File imageFile = new File(imagePath);
-        if (!imageFile.exists())
-        {
-            throw new IOException();
-        }
-        String tempDirPath = imageFile.getParent();
+        File imageFile = new File(FILESPATH + File.separator + UUID.randomUUID() + ".jpg");
 
-        Mat image = Highgui.imread(imageFile.getPath(), Highgui.CV_LOAD_IMAGE_COLOR);
-*/
+        //Mat image = Highgui.imread(imageFile.getPath(), Highgui.CV_LOAD_IMAGE_COLOR);
 
         Mat image = toMat2(bufferedImage);
 
