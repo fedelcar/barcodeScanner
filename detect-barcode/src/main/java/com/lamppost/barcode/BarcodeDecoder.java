@@ -135,9 +135,16 @@ public class BarcodeDecoder
      */
     public static List<BufferedImage> findRectangles(BufferedImage bufferedImage)
     {
-        File imageFile = new File(FILESPATH + File.separator + UUID.randomUUID() + ".jpg");
+        File imageFile = new File(FILESPATH + File.separator + UUID.randomUUID());
 
-        //Mat image = Highgui.imread(imageFile.getPath(), Highgui.CV_LOAD_IMAGE_COLOR);
+        try
+        {
+            ImageIO.write(bufferedImage, "png", imageFile);
+        }
+        catch (IOException e)
+        {
+            
+        }
 
         Mat image = toMat2(bufferedImage);
 
