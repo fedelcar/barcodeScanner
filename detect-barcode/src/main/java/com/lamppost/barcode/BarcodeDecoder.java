@@ -64,7 +64,7 @@ public class BarcodeDecoder
                     System.out.println(System.currentTimeMillis() + " - Imagen leida.");
                 }
 
-                deleteOldFiles();
+                //deleteOldFiles();
 
                 String response = decodeStraightBarcode(stream);
 
@@ -135,17 +135,6 @@ public class BarcodeDecoder
      */
     public static List<BufferedImage> findRectangles(BufferedImage bufferedImage)
     {
-        File imageFile = new File(FILESPATH + File.separator + UUID.randomUUID());
-
-        try
-        {
-            ImageIO.write(bufferedImage, "png", imageFile);
-        }
-        catch (IOException e)
-        {
-            
-        }
-
         Mat image = toMat2(bufferedImage);
 
 //        byte[] pito = ((DataBufferByte) bufferedImage.getRaster().getDataBuffer()).getData();
@@ -237,6 +226,15 @@ public class BarcodeDecoder
                             float ratio = (float) r.height / (float) r.width;
                             if (ratio > ASPECT_RATIO - 0.5f && ratio < ASPECT_RATIO + 0.5f || ratio > 1f / ASPECT_RATIO - 0.5f && ratio < 1f / ASPECT_RATIO + 0.5f)
                             {
+                                try
+                                {
+                                    File imageFile = new File(FILESPATH + File.separator + UUID.randomUUID());
+                                    ImageIO.write(toBufferedImage(approxMat), "png", imageFile);
+                                }
+                                catch (IOException e)
+                                {
+
+                                }
                                 result.add(toBufferedImage(approxMat));
                             }
                         }
